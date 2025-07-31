@@ -1,0 +1,11 @@
+# Node modules, Python cache, and system files
+node_modules/
+.env
+*.log
+__pycache__/
+.DS_Store
+*.pyc
+.idea/
+.vscode/
+dist/
+build/
