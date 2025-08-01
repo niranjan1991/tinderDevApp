@@ -1,8 +1,67 @@
 const express = require('express');
 const { connectToDatabase } = require('./config/database');
-
+const { User } = require('./models/user');
 const app = express();
 app.use(express.json());
+
+
+app.post('/sign-up', async (req, res) => {
+  try {
+    console.log(req.body);
+    const { firstName, lastName, email, password, age, gender } = req.body;
+    const createUser = new User({
+      firstName,
+      lastName,
+      email,
+      password,
+      age,
+      gender
+    });
+    await createUser.save();
+    res.send({ retunCode: 0, message: 'User created successfully' });
+  } catch (error) {
+    res.status(500).send({
+      returnCode: 1,
+      message: 'Error creating user',
+      error: error.message
+    })
+  }
+});
+
+
+app.get('/feed', async (req, res) => {
+  try {
+    const users = await User.find({}); // return all matching documents in array
+    if (users.length === 0) {
+      return res.status(404).send({ returnCode: 1, message: 'No users found' });
+    }
+    res.send({ returnCode: 0, message: 'Users fetched successfully', data: users });
+  } catch (error) {
+    res.status(500).send({
+      returnCode: 1,
+      message: 'Error fetching users',
+      error: error.message
+    });
+  }
+});
+
+app.post('/getUser', async (req, res) => {
+  try {
+    console.log(req.body.firstName);
+    const users = await User.findOne({ firstName: req.body.firstName }); // return single seach in object
+    console.log(users);
+    if (!users) {
+      return res.status(404).send({ returnCode: 1, message: 'No user found' });
+    }
+    res.send({ returnCode: 0, message: 'Users fetched successfully', data: users });
+  } catch (error) {
+    res.status(500).send({
+      returnCode: 1,
+      message: 'Error fetching users',
+      error: error.message
+    });
+  }
+});
 
 
 connectToDatabase()
@@ -15,4 +74,8 @@ connectToDatabase()
   .catch((error) => {
     console.error('Error connecting to the database:', error)
   });
+
+
+
+
 
