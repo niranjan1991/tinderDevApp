@@ -4,18 +4,21 @@ const { User } = require('./models/user');
 const app = express();
 app.use(express.json());
 
+const ALLOWED_UPDATE_FIELDS = ['firstName', 'lastName', 'password', 'age', 'skills'];
+
 
 app.post('/sign-up', async (req, res) => {
   try {
     console.log(req.body);
-    const { firstName, lastName, email, password, age, gender } = req.body;
+    const { firstName, lastName, email, password, age, gender, skills } = req.body;
     const createUser = new User({
       firstName,
       lastName,
       email,
       password,
       age,
-      gender
+      gender,
+      skills
     });
     await createUser.save();
     res.send({ retunCode: 0, message: 'User created successfully' });
@@ -62,6 +65,60 @@ app.post('/getUser', async (req, res) => {
     });
   }
 });
+
+
+app.delete('/deleteUser', async (req, res) => {
+  try {
+    const { _id } = req.body;
+    const user = await User.findByIdAndDelete(_id);
+    if (!user) {
+      return res.status(404).send({ returnCode: 1, message: 'User not found' });
+    }
+    res.send({ returnCode: 0, message: 'User deleted successfully' });
+  } catch (error) {
+    res.status(500).send({
+      returnCode: 1,
+      message: 'Error deleting user',
+      error: error.message
+    });
+  }
+});
+
+
+app.patch('/updateUser', async (req, res) => {
+  try {
+    /**
+     * in this case we are using patch method to update the user
+     * but validation is not done here
+     * so user can update any field
+     * to avoid this we can use third params which is options { runValidators: true } 
+     */
+    const { _id } = req.body;
+    const filterData = {};
+    ALLOWED_UPDATE_FIELDS.forEach((field) => {
+      if (req.body[field] !== undefined) {
+        filterData[field] = req.body[field];
+      }
+    });
+    
+    const user = await User.findByIdAndUpdate(
+      _id,
+      filterData,
+      { runValidators: true }
+    );
+    if (!user) {
+      return res.status(404).send({ returnCode: 1, message: 'User not found' });
+    }
+    res.send({ returnCode: 0, message: 'User updated successfully' });
+  } catch (error) {
+    res.status(500).send({
+      returnCode: 1,
+      message: 'Error updating user',
+      error: error.message
+    });
+  }
+});
+
 
 
 connectToDatabase()
