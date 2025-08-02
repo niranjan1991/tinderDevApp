@@ -2,7 +2,7 @@ const mongoose = require('mongoose');
 
 const connectToDatabase = async () => {
   console.log('Database connection initiated');
-  const url = 'mongodb+srv://niranjanpawar2:BVA2ferpSz52lM3z@namstenodelatest.8n8quio.mongodb.net/helloWorld'; // <-- Add DB name
+  const url = 'mongodb+srv://niranjanpawar2:BVA2ferpSz52lM3z@namstenodelatest.8n8quio.mongodb.net/devTinder'; // <-- Add DB name
   try {
     await mongoose.connect(url);
     console.log('✅ Database connection established');
@@ -13,4 +13,4 @@ const connectToDatabase = async () => {
 
 module.exports = {
   connectToDatabase
-}
+};
