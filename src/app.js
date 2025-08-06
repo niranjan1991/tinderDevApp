@@ -1,24 +1,29 @@
 const express = require('express');
-const { connectToDatabase } = require('./config/database');
+const cookieParser = require('cookie-parser');
 const { User } = require('./models/user');
+const { connectToDatabase } = require('./config/database');
+const { validateToken } = require('./middleware/authentication');
+
 const app = express();
 app.use(express.json());
+app.use(cookieParser())
 
-const ALLOWED_UPDATE_FIELDS = ['firstName', 'lastName', 'password', 'age', 'skills'];
+const ALLOWED_UPDATE_FIELDS = ['firstName', 'lastName', 'password', 'age', 'skills', 'photoUrl'];
 
 
 app.post('/sign-up', async (req, res) => {
   try {
-    console.log(req.body);
-    const { firstName, lastName, email, password, age, gender, skills } = req.body;
+    const { firstName, lastName, email, password, age, gender, skills, photoUrl } = req.body;
+    const hashPassword = await bcrypt.hash(password, 10);
     const createUser = new User({
       firstName,
       lastName,
       email,
-      password,
+      password: hashPassword,
       age,
       gender,
-      skills
+      skills,
+      photoUrl
     });
     await createUser.save();
     res.send({ retunCode: 0, message: 'User created successfully' });
@@ -32,7 +37,7 @@ app.post('/sign-up', async (req, res) => {
 });
 
 
-app.get('/feed', async (req, res) => {
+app.get('/feed', validateToken, async (req, res) => {
   try {
     const users = await User.find({}); // return all matching documents in array
     if (users.length === 0) {
@@ -48,7 +53,7 @@ app.get('/feed', async (req, res) => {
   }
 });
 
-app.post('/getUser', async (req, res) => {
+app.post('/getUser', validateToken, async (req, res) => {
   try {
     console.log(req.body.firstName);
     const users = await User.findOne({ firstName: req.body.firstName }); // return single seach in object
@@ -67,7 +72,7 @@ app.post('/getUser', async (req, res) => {
 });
 
 
-app.delete('/deleteUser', async (req, res) => {
+app.delete('/deleteUser', validateToken, async (req, res) => {
   try {
     const { _id } = req.body;
     const user = await User.findByIdAndDelete(_id);
@@ -85,7 +90,7 @@ app.delete('/deleteUser', async (req, res) => {
 });
 
 
-app.patch('/updateUser', async (req, res) => {
+app.patch('/updateUser', validateToken, async (req, res) => {
   try {
     /**
      * in this case we are using patch method to update the user
@@ -100,7 +105,7 @@ app.patch('/updateUser', async (req, res) => {
         filterData[field] = req.body[field];
       }
     });
-    
+
     const user = await User.findByIdAndUpdate(
       _id,
       filterData,
@@ -119,6 +124,47 @@ app.patch('/updateUser', async (req, res) => {
   }
 });
 
+app.post('/login', async (req, res) => {
+  try {
+    const { email, password } = req.body;
+    const user = await await User.findOne({ email: email });
+    if (!user) {
+      return res.status(404).send({ returnCode: 1, message: 'invalid Credentials' });
+    };
+    const isPasswordValid = await user.isPasswordValid(password);
+
+    if (!isPasswordValid) {
+      return res.status(404).send({ returnCode: 1, message: 'Incorrect password' });
+    };
+    const token = user.getJwtToken(); // used method from user model created to use as helper function
+    res.cookie('token', token);
+    res.send({ returnCode: 0, message: 'Login successful' });
+  } catch (error) {
+    res.status(500).send({
+      returnCode: 1,
+      message: 'Error logging in',
+      error: error.message
+    });
+  }
+}),
+
+
+  app.get('/profile', validateToken, (req, res) => {
+    try {
+      res.send({
+        user: req.user,
+        returnCode: 0,
+        message: 'Profile fetched successfully',
+      })
+    }
+    catch (error) {
+      res.status(500).send({
+        returnCode: 1,
+        message: 'Error fetching profile',
+        error: error.message
+      });
+    }
+  });
 
 
 connectToDatabase()

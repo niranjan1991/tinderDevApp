@@ -1,6 +1,7 @@
-
 const mongoose = require('mongoose');
 const validator = require('validator');
+const jwt = require('jsonwebtoken');
+const bcrypt = require('bcrypt');
 const { Schema } = mongoose;
 
 const userSchema = new Schema(
@@ -20,7 +21,7 @@ const userSchema = new Schema(
             unique: true,
             trim: true,
             validate: (email) => {
-                if(!validator.isEmail(email)){
+                if (!validator.isEmail(email)) {
                     throw new Error('Invalid email format');
                 }
             }
@@ -28,7 +29,12 @@ const userSchema = new Schema(
         password: {
             type: String,
             required: true,
-            minlength: 6,
+            validate: (password) => {
+                if (!validator.isStrongPassword(password)) {
+                    throw new Error('Password must be at least 6 characters long');
+                }
+            }
+
         },
         age: {
             type: Number,
@@ -51,12 +57,37 @@ const userSchema = new Schema(
                     throw new Error('Skills cannot exceed 5 items');
                 }
             }
-        }
+        },
+        photoUrl: {
+            type: String,
+            validate: (url) => {
+                if (url && !validator.isURL(url)) {
+                    throw new Error('Invalid URL format');
+                }
+            }
+
+        },
     },
     {
         timestamps: true
     }
 );
+
+userSchema.methods.getJwtToken = function () {
+    const user = this; // reference to the current user instance
+    const token = jwt.sign({ _id: user._id },
+        'DEV_SECRET',
+        { expiresIn: '1h' }
+    );
+    return token;
+};
+
+userSchema.methods.isPasswordValid = async function (password) {
+    const user = this;
+    const hashedPassword = user.password;
+    const isPasswordValid = await bcrypt.compare(password, hashedPassword);
+    return isPasswordValid;
+}
 
 const User = mongoose.model('User', userSchema);
 
