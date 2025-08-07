@@ -29,12 +29,6 @@ const userSchema = new Schema(
         password: {
             type: String,
             required: true,
-            validate: (password) => {
-                if (!validator.isStrongPassword(password)) {
-                    throw new Error('Password must be at least 6 characters long');
-                }
-            }
-
         },
         age: {
             type: Number,
