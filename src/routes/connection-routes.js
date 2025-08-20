@@ -117,10 +117,10 @@ connectionRouter.post('/connect/review/:status/:id', validateToken, async (req, 
     });
 
   } catch (error) {
-    // res.status(500).send({
-    //   statusCode: 1,
-    //   message: 'Error to check !!!!!!!'
-    // })
+    res.status(500).send({
+      statusCode: 1,
+      message: 'Error to check !!!!!!!'
+    })
   }
 })
 
