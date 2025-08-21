@@ -122,6 +122,33 @@ connectionRouter.post('/connect/review/:status/:id', validateToken, async (req, 
       message: 'Error to check !!!!!!!'
     })
   }
-})
+});
+
+
+connectionRouter.get('/connect/getConnection', validateToken, async (req, res) => {
+  try {
+    const loggedInUser = req.user.id;
+
+    const connectionsList = await ConnectionRequest.find({ 
+      toUserId: loggedInUser,
+      status: CONNECTION_STATUS[0]
+    }).populate('fromUserId', ['firstName', 'lastName']) 
+    // fromUserId has reference of user so it is kind of inner join
+
+
+    res.send({
+      statusCode: 0,
+      data: connectionsList,
+      message : connectionsList?.length === 0 ? 'No connection request OR no connection with accpeted status' : 'List of connections'
+    })
+
+  } catch (error) {
+    res.status(500).send({
+      statusCode: 1,
+      message: error
+    })
+  }
+
+});
 
 module.exports = connectionRouter;

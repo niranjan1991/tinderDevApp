@@ -18,9 +18,9 @@ app.use('/', connectionRouter);
 
 connectToDatabase()
   .then(() => {
-    app.listen(7000, () => {
+    app.listen(7777, () => {
       console.log('Database connected successfully')
-      console.log('Server is running on http://localhost:7000');
+      console.log('Server is running on http://localhost:7777');
     });
   })
   .catch((error) => {
