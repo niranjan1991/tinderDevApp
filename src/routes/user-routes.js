@@ -64,25 +64,33 @@ userRouter.get('/user/feed', validateToken, async (req, res) => {
 
 userRouter.get('/user/friendList', validateToken, async (req, res) => {
     try {
-
-        // Niranjan - loggdIN
-        // Anuja - toUserId
-
         const loggedInUser = req.user; 
         console.log(loggedInUser); 
         const userList = await ConnectionRequest.find({
             $or: [
-                { toUserId: loggedInUser._id, status: CONNECTION_REVIEW_STATUS[0] },
-                { fromUserId: loggedInUser._id, status: CONNECTION_REVIEW_STATUS[0] }
+                { toUserId: loggedInUser._id, status: CONNECTION_REVIEW_STATUS[0] }, // 1st anuja to-user-id accepted
+                { fromUserId: loggedInUser._id, status: CONNECTION_REVIEW_STATUS[0] } // 2nd niranjan - from-user-id : accepted
             ],
         })
             .populate(
-                'fromUserId', ['firstName', 'lastName', 'gender', 'skills', 'photoUrl']
+                'fromUserId', ['firstName', 'lastName', 'gender', 'skills', 'photoUrl'] // Niranjan Detail
             )
             .populate(
-                'toUserId', ['firstName', 'lastName', 'gender', 'skills', 'photoUrl']
+                'toUserId', ['firstName', 'lastName', 'gender', 'skills', 'photoUrl'] // - Anuja Detail
             );
 
+            /**
+             * Anuja is reciever (toUser)
+             * she login & see the request
+             * she accpet request of Niranjan (fromUser)
+             * now db hav record where toUser[Anuja] -> fromUser[Niranjan]
+             * As Anuja is loggedInUser & want to see the connection
+             * she will find in DB with loggedInUserID of (toUser - accepted & fromUser -> accpeted with status of accpeted)
+             * Anuja got the request including her (As she also sent request to some-one (Dhairya));
+             * Anuja is seeing herself in connection as well (She sent request & some one has accpeted. Anuja is FromUser in this case)
+             * we will iterate the list & check if userList.map -> item.fromUser.id === loggedInUser.id ? return item.fromUser;
+            */
+           
         const showUserList = userList?.map((item) => {
             if (item.fromUserId._id.toString() === loggedInUser._id.toString()) {
                 return item.toUserId;
