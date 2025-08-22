@@ -2,11 +2,16 @@ const mongoose = require('mongoose');
 const { Schema } = mongoose;
 const { CONNECTION_STATUS } = require('../enums/connection');
 
+/**
+    * fromUserId: Who sent the request
+    * toUserId: Who received the request
+ */
+
 const connectionRequestSchema = new Schema({
     fromUserId: {
         type: Schema.Types.ObjectId,
         required: true,
-        ref: 'User' 
+        ref: 'User'
         /**
             * ref :- joins the table to get information about user detail in connecionSchema
             * Always use schema name  
@@ -18,6 +23,7 @@ const connectionRequestSchema = new Schema({
     toUserId: {
         type: Schema.Types.ObjectId,
         required: true,
+        ref: 'User'
     },
     status: {
         type: String,

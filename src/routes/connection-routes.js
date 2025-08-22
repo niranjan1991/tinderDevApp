@@ -7,6 +7,7 @@ const { User } = require('../models/user');
 const { CONNECTION_STATUS, CONNECTION_REVIEW_STATUS } = require('../enums/connection');
 
 
+// interest ||  ignore
 connectionRouter.post('/connect/send/:status/:id', validateToken, async (req, res) => {
   try {
     const fromUserId = req.user.id;
@@ -82,13 +83,22 @@ connectionRouter.post('/connect/send/:status/:id', validateToken, async (req, re
 });
 
 
+// accepted ||  rejected
 connectionRouter.post('/connect/review/:status/:id', validateToken, async (req, res) => {
   try {
-    const loggedInUser = req.user.id;
     const { id, status } = req.params;
+    const { id: loggedInUser, firstName: fromUserFirstName, lastName: fromUserLastName } = req.user;
+    const { firstName: toUserFirstName, lastName: toUserLasttName } = await User.findById(id) || {};
+
+    if (loggedInUser === id) {
+      return res.status(400).send({
+        returnCode: 1,
+        message: `sender is ${fromUserFirstName} & reciver is ${toUserFirstName} same !!!!`
+      })
+    }
 
     if (!CONNECTION_REVIEW_STATUS.includes(status)) {
-      res.status(400).send({
+      return res.status(400).send({
         statusCode: 1,
         message: 'Status is invalid'
       });
@@ -96,14 +106,20 @@ connectionRouter.post('/connect/review/:status/:id', validateToken, async (req, 
 
     const connectionRequest = await ConnectionRequest.findOne({
       fromUserId: id,
-      toUserId: loggedInUser,
-      status: CONNECTION_STATUS[0],
+      toUserId: loggedInUser
     });
 
     if (!connectionRequest) {
-      res.status(400).send({
+      return res.status(400).send({
+        statusCode: 0,
+        message: 'No connection request found from this user.'
+      });
+    }
+
+    if (connectionRequest.status !== CONNECTION_STATUS[0]) {
+      return res.status(400).send({
         statusCode: 1,
-        message: 'status is not interested now, User has already accepted or ignore this request'
+        message: `Cannot proceed. Request has already been '${connectionRequest.status}'.`,
       });
     }
 
@@ -122,33 +138,6 @@ connectionRouter.post('/connect/review/:status/:id', validateToken, async (req, 
       message: 'Error to check !!!!!!!'
     })
   }
-});
-
-
-connectionRouter.get('/connect/getConnection', validateToken, async (req, res) => {
-  try {
-    const loggedInUser = req.user.id;
-
-    const connectionsList = await ConnectionRequest.find({ 
-      toUserId: loggedInUser,
-      status: CONNECTION_STATUS[0]
-    }).populate('fromUserId', ['firstName', 'lastName']) 
-    // fromUserId has reference of user so it is kind of inner join
-
-
-    res.send({
-      statusCode: 0,
-      data: connectionsList,
-      message : connectionsList?.length === 0 ? 'No connection request OR no connection with accpeted status' : 'List of connections'
-    })
-
-  } catch (error) {
-    res.status(500).send({
-      statusCode: 1,
-      message: error
-    })
-  }
-
 });
 
 module.exports = connectionRouter;

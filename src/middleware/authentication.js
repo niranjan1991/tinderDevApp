@@ -12,6 +12,7 @@ const validateToken = async (req, res, next) => {
         if (!user || user._id.toString() !== _id) {
             throw new Error('User not found');
         }
+        user.id = _id;
         req.user = user;
         next();
     } catch (error) {
