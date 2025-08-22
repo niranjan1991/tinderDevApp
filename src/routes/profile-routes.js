@@ -47,7 +47,7 @@ profileRouter.patch('/profile/edit', validateToken, async (req, res) => {
   }
 });
 
-profileRouter.post('/profile/password', validateToken, async (req, res) => {
+profileRouter.post('/profile/change-password', validateToken, async (req, res) => {
   try {
     const { password, newPassword } = req.body || {};
     if (password === newPassword) throw new Error('Can not used same password')
