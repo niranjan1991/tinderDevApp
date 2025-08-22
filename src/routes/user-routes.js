@@ -39,22 +39,6 @@ userRouter.get('/user/getConnection', validateToken, async (req, res) => {
     }
 });
 
-userRouter.get('/user/feed', validateToken, async (req, res) => {
-    try {
-        const users = await User.find({}); // return all matching documents in array
-        if (users.length === 0) {
-            return res.status(404).send({ returnCode: 1, message: 'No users found' });
-        }
-        res.send({ returnCode: 0, message: 'Users fetched successfully', data: users });
-    } catch (error) {
-        res.status(500).send({
-            returnCode: 1,
-            message: 'Error fetching users',
-            error: error.message
-        });
-    }
-});
-
 /**
     * loggedInUser id to check
     * user should see the accepted request 
@@ -64,8 +48,8 @@ userRouter.get('/user/feed', validateToken, async (req, res) => {
 
 userRouter.get('/user/friendList', validateToken, async (req, res) => {
     try {
-        const loggedInUser = req.user; 
-        console.log(loggedInUser); 
+        const loggedInUser = req.user;
+        console.log(loggedInUser);
         const userList = await ConnectionRequest.find({
             $or: [
                 { toUserId: loggedInUser._id, status: CONNECTION_REVIEW_STATUS[0] }, // 1st anuja to-user-id accepted
@@ -79,18 +63,17 @@ userRouter.get('/user/friendList', validateToken, async (req, res) => {
                 'toUserId', ['firstName', 'lastName', 'gender', 'skills', 'photoUrl'] // - Anuja Detail
             );
 
-            /**
-             * Anuja is reciever (toUser)
-             * she login & see the request
-             * she accpet request of Niranjan (fromUser)
-             * now db hav record where toUser[Anuja] -> fromUser[Niranjan]
-             * As Anuja is loggedInUser & want to see the connection
-             * she will find in DB with loggedInUserID of (toUser - accepted & fromUser -> accpeted with status of accpeted)
-             * Anuja got the request including her (As she also sent request to some-one (Dhairya));
-             * Anuja is seeing herself in connection as well (She sent request & some one has accpeted. Anuja is FromUser in this case)
-             * we will iterate the list & check if userList.map -> item.fromUser.id === loggedInUser.id ? return item.fromUser;
-            */
-           
+        /**
+         * Anuja is reciever (toUser)
+         * she login & see the request
+         * she accpet request of Niranjan (fromUser)
+         * now db hav record where toUser[Anuja] -> fromUser[Niranjan]
+         * As Anuja is loggedInUser & want to see the connection
+         * she will find in DB with loggedInUserID of (toUser - accepted & fromUser -> accpeted with status of accpeted)
+         * Anuja got the request including her (As she also sent request to some-one (Dhairya));
+         * Anuja is seeing herself in connection as well (She sent request & some one has accpeted. Anuja is FromUser in this case)
+         * we will iterate the list & check if userList.map -> item.fromUser.id === loggedInUser.id ? return item.fromUser;
+        */
         const showUserList = userList?.map((item) => {
             if (item.fromUserId._id.toString() === loggedInUser._id.toString()) {
                 return item.toUserId;
@@ -108,6 +91,55 @@ userRouter.get('/user/friendList', validateToken, async (req, res) => {
             statusCode: 1,
             message: error
         })
+    }
+});
+/**
+     * user should be logged in - validateToken [Done]
+     * user should not see the ignore OR interested request
+     * user should not see the accpeted || rejected request
+     * should not see him self
+ */
+
+
+/**
+        * now have all list except self
+        * check in connection table with sent & recived req with loginUserId
+        * got the connection array with all records
+        * now compare user table with connection array where no matching records wil be the feed
+*/
+userRouter.get('/user/feed', validateToken, async (req, res) => {
+    try {
+        const loggedInUser = req.user;
+        const connectionReq = await ConnectionRequest.find({
+            $or: [
+                { toUserId: loggedInUser._id },
+                { fromUserId: loggedInUser._id }
+            ]
+        })
+            .populate('toUserId', 'firstName')
+            .populate('fromUserId', 'firstName');
+
+        const excludeConnections = new Set();
+
+        connectionReq.forEach((item) => {
+            excludeConnections.add(item.fromUserId._id.toString());
+            excludeConnections.add(item.fromUserId._id.toString());
+        });
+
+        const test = [...excludeConnections, loggedInUser._id.toString()];
+
+        const userFeed = await User.find({
+            _id: { $nin: test }
+        });
+
+        res.send({ returnCode: 0, message: 'Users fetched successfully', data: userFeed });
+
+    } catch (error) {
+        res.status(500).send({
+            returnCode: 1,
+            message: 'Error fetching users',
+            error: error.message
+        });
     }
 });
 
